@@ -110,6 +110,11 @@ export default function App() {
     'Thư mục Truyện Audio (1ESn1qx...)'
   );
 
+  // Navigation stack for folder history and breadcrumbs
+  const [folderStack, setFolderStack] = useState<Array<{ id: string; name: string }>>([
+    { id: DEFAULT_TARGET_FOLDER, name: 'Thư mục gốc' },
+  ]);
+
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
@@ -345,7 +350,7 @@ export default function App() {
   }, [selectedFolderId]);
 
   // Open folder by URL or ID
-  const handleOpenFolderByUrl = async (folderIdOrUrl: string) => {
+  const handleOpenFolderByUrl = async (folderIdOrUrl: string, customTitle?: string) => {
     const cleanId = extractDriveFolderId(folderIdOrUrl);
     setSelectedFolderId(cleanId);
 
@@ -353,15 +358,27 @@ export default function App() {
       setIsLoadingFiles(true);
       setDataError(null);
 
-      // 1. Fetch live files directly from Google Drive folder via proxy
+      // 1. Fetch live files directly from Google Drive folder via proxy or direct client API
       const { folderTitle, stories: fetchedStories, subfolders: fetchedSubfolders } = await fetchPublicFolderAudio(cleanId);
 
-      setSelectedFolderName(folderTitle);
+      const effectiveTitle = customTitle || folderTitle;
+      setSelectedFolderName(effectiveTitle);
       setSubfolders(fetchedSubfolders || []);
       setIsStoriesListOpen(true);
       setSearchQuery('');
 
-      const folderInfo = { id: cleanId, name: folderTitle };
+      // Update folder navigation stack for back button & breadcrumbs
+      setFolderStack((prev) => {
+        const existingIdx = prev.findIndex((item) => item.id === cleanId);
+        if (existingIdx >= 0) {
+          const updated = [...prev.slice(0, existingIdx + 1)];
+          updated[existingIdx] = { id: cleanId, name: effectiveTitle };
+          return updated;
+        }
+        return [...prev, { id: cleanId, name: effectiveTitle }];
+      });
+
+      const folderInfo = { id: cleanId, name: effectiveTitle };
       setFolders((prev) => {
         const map = new Map<string, DriveFolder>();
         map.set(folderInfo.id, folderInfo);
@@ -399,7 +416,7 @@ export default function App() {
           webViewLink: `https://drive.google.com/drive/folders/${sf.id}`,
           audioUrl: '',
           folderId: cleanId,
-          folderName: folderTitle,
+          folderName: effectiveTitle,
           savedProgress: 0,
           isFolder: true,
         }));
@@ -410,7 +427,7 @@ export default function App() {
         setCurrentStory(null);
       }
     } catch (err: unknown) {
-      console.warn('Direct folder fetch error, falling back to authenticated Drive API:', err);
+      console.warn('Folder fetch error:', err);
       const currentToken = token || (await getAccessToken());
       if (currentToken) {
         await loadDriveData(currentToken, cleanId);
@@ -420,6 +437,18 @@ export default function App() {
     } finally {
       setIsLoadingFiles(false);
     }
+  };
+
+  const handleGoBackFolder = () => {
+    if (folderStack.length <= 1) return;
+    const previousFolder = folderStack[folderStack.length - 2];
+    handleOpenFolderByUrl(previousFolder.id, previousFolder.name);
+  };
+
+  const handleNavigateToBreadcrumb = (index: number) => {
+    if (index < 0 || index >= folderStack.length) return;
+    const targetFolder = folderStack[index];
+    handleOpenFolderByUrl(targetFolder.id, targetFolder.name);
   };
 
   // On mount: Automatically load all real MP3 files from 1ESn1qxHVscGhXQ7-eIwuyJvj5z7LoDax
@@ -866,6 +895,44 @@ export default function App() {
                       Thử lại
                     </button>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Breadcrumb Navigation & Back Button */}
+            {folderStack.length > 1 && (
+              <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex items-center gap-3 flex-wrap transition-colors">
+                <button
+                  onClick={handleGoBackFolder}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-xl font-bold text-xs transition-colors shadow-2xs cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Quay lại cấp trước</span>
+                </button>
+
+                <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 hidden sm:block" />
+
+                <div className="flex items-center gap-1.5 flex-wrap text-xs">
+                  <span className="font-medium text-slate-400">Đường dẫn:</span>
+                  {folderStack.map((item, idx) => {
+                    const isLast = idx === folderStack.length - 1;
+                    return (
+                      <div key={item.id} className="flex items-center gap-1">
+                        {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
+                        <button
+                          disabled={isLast}
+                          onClick={() => handleNavigateToBreadcrumb(idx)}
+                          className={`font-semibold transition-colors cursor-pointer ${
+                            isLast
+                              ? 'text-indigo-600 dark:text-indigo-400 font-bold !cursor-default'
+                              : 'text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 underline decoration-slate-300 dark:decoration-slate-600'
+                          }`}
+                        >
+                          {item.name || `Thư mục ${idx + 1}`}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

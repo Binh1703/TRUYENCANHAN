@@ -168,70 +168,125 @@ export const fetchPublicFolderAudio = async (
   const cleanId = extractDriveFolderId(folderId);
   const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
 
-  // 1. If VITE_GOOGLE_API_KEY is configured (e.g. on Vercel), query Google Drive API v3 directly from client!
-  if (apiKey) {
-    try {
-      // Get folder title
-      const folderRes = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${cleanId}?fields=name&key=${apiKey}`
+  // 1. If VITE_GOOGLE_API_KEY is configured, query Google Drive API v3 directly from client
+  if (apiKey && apiKey.trim().length > 0) {
+    // Fetch folder metadata / title
+    const folderRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${cleanId}?fields=id,name,mimeType&supportsAllDrives=true&key=${apiKey}`
+    );
+
+    if (!folderRes.ok) {
+      throw new Error(
+        "API Key bị từ chối hoặc thư mục chưa được chia sẻ 'Bất kỳ ai có đường liên kết'. Kiểm tra lại API Key và quyền chia sẻ của thư mục."
       );
-      const folderData = await folderRes.json().catch(() => ({}));
-      const folderTitle = folderData.name || 'Thư mục Google Drive';
-
-      // Get files and subfolders in parent folder
-      const filesUrl = `https://www.googleapis.com/drive/v3/files?q='${cleanId}'+in+parents+and+trashed=false&fields=files(id,name,mimeType,size,modifiedTime,webViewLink)&pageSize=1000&key=${apiKey}`;
-      const filesRes = await fetch(filesUrl);
-
-      if (filesRes.ok) {
-        const filesData = await filesRes.json();
-        const items = filesData.files || [];
-
-        const subfolders: DriveFolder[] = items
-          .filter((f: { mimeType: string }) => f.mimeType === 'application/vnd.google-apps.folder')
-          .map((f: { id: string; name: string }) => ({ id: f.id, name: f.name }));
-
-        const audioFiles = items.filter(
-          (f: { mimeType: string; name: string }) =>
-            f.mimeType.startsWith('audio/') || /\.(mp3|m4a|wav|aac|ogg|flac)$/i.test(f.name)
-        );
-
-        const stories: AudioStoryItem[] = audioFiles.map((file: { id: string; name: string; size?: string; mimeType: string; webViewLink?: string }) => {
-          let title = file.name.replace(/\.[^/.]+$/, '');
-          let chapter = '';
-          const chapterMatch = title.match(/(chương|chuong|tập|tap|hồi|hoi|phần|phan|ep|episode|part)\s*(\d+[-_0-9]*)/i);
-          if (chapterMatch) {
-            chapter = `${chapterMatch[1]} ${chapterMatch[2]}`;
-          }
-
-          const isFolderItem = /shared folder|folder|thư mục/i.test(file.name);
-          const sizeNum = parseInt(file.size || '15000000', 10);
-
-          return {
-            id: file.id,
-            name: file.name,
-            title: title.charAt(0).toUpperCase() + title.slice(1),
-            chapter,
-            sizeBytes: sizeNum,
-            formattedSize: isFolderItem ? 'Thư mục chứa tệp' : formatBytes(sizeNum),
-            modifiedTime: new Date().toISOString(),
-            mimeType: isFolderItem ? 'application/vnd.google-apps.folder' : 'audio/mpeg',
-            webViewLink: file.webViewLink || `https://drive.google.com/file/d/${file.id}/view`,
-            audioUrl: `https://docs.google.com/uc?export=download&id=${file.id}`,
-            folderId: cleanId,
-            folderName: folderTitle,
-            savedProgress: 0,
-            isFolder: isFolderItem,
-          };
-        });
-
-        return { folderTitle, stories, subfolders };
-      }
-    } catch (apiErr) {
-      console.warn('Client Google Drive API fetch failed, falling back to server endpoint:', apiErr);
     }
+
+    const folderData = await folderRes.json().catch(() => ({}));
+    const folderTitle = folderData.name || 'Thư mục Google Drive';
+
+    // Loop through all pages using nextPageToken
+    let pageToken: string | undefined = undefined;
+    const allFiles: Array<{
+      id: string;
+      name: string;
+      mimeType: string;
+      size?: string;
+      modifiedTime?: string;
+      createdTime?: string;
+      webViewLink?: string;
+    }> = [];
+
+    do {
+      let pageUrl = `https://www.googleapis.com/drive/v3/files?q='${cleanId}'+in+parents+and+trashed=false&fields=nextPageToken,files(id,name,mimeType,size,modifiedTime,createdTime,webViewLink)&pageSize=1000&orderBy=name&supportsAllDrives=true&includeItemsFromAllDrives=true&key=${apiKey}`;
+      if (pageToken) {
+        pageUrl += `&pageToken=${encodeURIComponent(pageToken)}`;
+      }
+
+      const filesRes = await fetch(pageUrl);
+      if (!filesRes.ok) {
+        throw new Error(
+          "API Key bị từ chối hoặc thư mục chưa được chia sẻ 'Bất kỳ ai có đường liên kết'. Kiểm tra lại API Key và quyền chia sẻ của thư mục."
+        );
+      }
+
+      const filesData = await filesRes.json();
+      if (filesData.files) {
+        allFiles.push(...filesData.files);
+      }
+      pageToken = filesData.nextPageToken;
+    } while (pageToken);
+
+    // Classify subfolders strictly by mimeType
+    const subfolders: DriveFolder[] = allFiles
+      .filter((f) => f.mimeType === 'application/vnd.google-apps.folder')
+      .map((f) => ({ id: f.id, name: f.name }));
+
+    // Filter audio files by mimeType or extensions
+    const audioFiles = allFiles.filter(
+      (f) =>
+        f.mimeType.startsWith('audio/') ||
+        /\.(mp3|m4a|wav|aac|ogg|flac)$/i.test(f.name)
+    );
+
+    // Text files for companion reader
+    const textFiles = allFiles.filter(
+      (f) =>
+        f.mimeType === 'text/plain' ||
+        /\.(txt|md|lrc)$/i.test(f.name)
+    );
+
+    const stories: AudioStoryItem[] = audioFiles.map((file) => {
+      let title = file.name.replace(/\.[^/.]+$/, '');
+      let chapter = '';
+      const chapterMatch = title.match(
+        /(chương|chuong|tập|tap|hồi|hoi|phần|phan|ep|episode|part)\s*(\d+[-_0-9]*)/i
+      );
+      if (chapterMatch) {
+        chapter = `${chapterMatch[1]} ${chapterMatch[2]}`;
+      }
+
+      const sizeNum = parseInt(file.size || '0', 10);
+      const modTime = file.modifiedTime || file.createdTime || new Date().toISOString();
+
+      // Look for matching companion text file
+      const baseName = title.trim().toLowerCase();
+      const matchedText = textFiles.find((txt) => {
+        const txtBaseName = txt.name.replace(/\.[^/.]+$/, '').trim().toLowerCase();
+        return (
+          txtBaseName === baseName ||
+          txtBaseName === `${baseName}_content` ||
+          txtBaseName === `${baseName}_transcript`
+        );
+      });
+
+      // Saved progress
+      const saved = localStorage.getItem(`audio_pos_${file.id}`);
+      const savedProgress = saved ? parseFloat(saved) : 0;
+
+      return {
+        id: file.id,
+        name: file.name,
+        title: title.charAt(0).toUpperCase() + title.slice(1),
+        chapter,
+        sizeBytes: sizeNum,
+        formattedSize: sizeNum > 0 ? formatBytes(sizeNum) : 'Audio MP3',
+        modifiedTime: modTime,
+        mimeType: file.mimeType,
+        webViewLink: file.webViewLink || `https://drive.google.com/file/d/${file.id}/view`,
+        audioUrl: `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media&key=${apiKey}`,
+        folderId: cleanId,
+        folderName: folderTitle,
+        companionTextFileId: matchedText?.id,
+        companionTextFileName: matchedText?.name,
+        savedProgress,
+        isFolder: false,
+      };
+    });
+
+    return { folderTitle, stories, subfolders };
   }
 
-  // 2. Fallback to server endpoint
+  // 2. Fallback to Express backend proxy when running dev server locally without client key
   const res = await fetch(`/api/drive/public-folder/${cleanId}`);
 
   if (!res.ok) {
