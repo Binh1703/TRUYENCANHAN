@@ -21,6 +21,7 @@ interface StoryCardProps {
   isPlaying: boolean;
   isCurrent: boolean;
   onPlay: (story: AudioStoryItem) => void;
+  onOpenFolder?: (folderId: string) => void;
   onSelectForReader: (story: AudioStoryItem) => void;
   onRequestDelete: (story: AudioStoryItem) => void;
   onMoveUp?: () => void;
@@ -45,6 +46,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({
   isPlaying,
   isCurrent,
   onPlay,
+  onOpenFolder,
   onSelectForReader,
   onRequestDelete,
   onMoveUp,
@@ -62,6 +64,19 @@ export const StoryCard: React.FC<StoryCardProps> = ({
   onDragEnd,
 }) => {
   const [isChangingPosition, setIsChangingPosition] = useState(false);
+  const isFolderCard = story.isFolder || /shared folder|folder|thư mục/i.test(story.name);
+
+  const handleCardClick = () => {
+    if (isFolderCard) {
+      if (onOpenFolder) {
+        onOpenFolder(story.id);
+      } else {
+        onPlay(story);
+      }
+    } else {
+      onPlay(story);
+    }
+  };
 
   return (
     <div
@@ -99,20 +114,30 @@ export const StoryCard: React.FC<StoryCardProps> = ({
           <GripVertical className="w-5 h-5" />
         </div>
 
-        {/* Play Button with Position Badge */}
+        {/* Play Button or Open Folder Button with Position Badge */}
         <div className="relative flex-shrink-0">
           <button
-            onClick={() => onPlay(story)}
+            onClick={handleCardClick}
             className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform active:scale-95 shadow-sm ${
-              isCurrent && isPlaying
+              isFolderCard
+                ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20'
+                : isCurrent && isPlaying
                 ? 'bg-indigo-600 text-white shadow-indigo-200 dark:shadow-indigo-900'
                 : isCurrent
                 ? 'bg-indigo-600 text-white'
                 : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-indigo-600 group-hover:text-white text-slate-700 dark:text-slate-300'
             }`}
-            title={isCurrent && isPlaying ? 'Tạm dừng' : `Phát tập số #${index}`}
+            title={
+              isFolderCard
+                ? `Mở thư mục ${story.title}`
+                : isCurrent && isPlaying
+                ? 'Tạm dừng'
+                : `Phát tập số #${index}`
+            }
           >
-            {isCurrent && isPlaying ? (
+            {isFolderCard ? (
+              <Folder className="w-5 h-5 fill-white/20" />
+            ) : isCurrent && isPlaying ? (
               <div className="flex items-end gap-0.5 h-4">
                 <span className="w-0.5 bg-white rounded-full animate-eq-1" />
                 <span className="w-0.5 bg-white rounded-full animate-eq-2" />
@@ -162,7 +187,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <h4
-              onClick={() => onPlay(story)}
+              onClick={handleCardClick}
               className={`text-sm font-bold truncate cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 ${
                 isCurrent
                   ? 'text-indigo-900 dark:text-indigo-200 font-extrabold'
@@ -219,6 +244,17 @@ export const StoryCard: React.FC<StoryCardProps> = ({
               <span className="text-slate-400 dark:text-slate-500 italic">Chưa có chữ</span>
             )}
           </div>
+
+          {isFolderCard && (
+            <button
+              type="button"
+              onClick={handleCardClick}
+              className="mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
+            >
+              <Folder className="w-4 h-4 fill-white/20" />
+              <span>Mở thư mục chứa các tập MP3 này ▶</span>
+            </button>
+          )}
 
           {/* Saved progress */}
           {story.savedProgress && story.savedProgress > 5 && (

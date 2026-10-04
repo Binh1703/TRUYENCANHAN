@@ -35,6 +35,7 @@ export interface AudioStoryItem {
   textContent?: string;
   duration?: number; // in seconds if detected
   savedProgress?: number; // in seconds
+  isFolder?: boolean; // True if item is a folder containing sub-files
 }
 
 export interface Bookmark {

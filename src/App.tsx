@@ -30,6 +30,8 @@ import { DriveEmbedViewer } from './components/DriveEmbedViewer';
 import { UserGuideModal } from './components/UserGuideModal';
 import { GoogleSignInButton } from './components/GoogleSignInButton';
 import { PlaylistOrderManager, SortMode } from './components/PlaylistOrderManager';
+import { LockScreen } from './components/LockScreen';
+import { HistoryBackupModal } from './components/HistoryBackupModal';
 import {
   Search,
   Folder,
@@ -45,6 +47,9 @@ import {
   EyeOff,
   ListMusic,
   FolderOpen,
+  ChevronRight,
+  ArrowLeft,
+  BookOpen,
 } from 'lucide-react';
 
 const DEFAULT_TARGET_FOLDER = '1ESn1qxHVscGhXQ7-eIwuyJvj5z7LoDax';
@@ -65,61 +70,6 @@ export const extractNumericOrder = (name: string): number => {
   const anyNum = name.match(/\d+(\.\d+)?/);
   return anyNum ? parseFloat(anyNum[0]) : 999999;
 };
-
-// Immediate playable & readable chapters for 1ESn1qxHVscGhXQ7-eIwuyJvj5z7LoDax
-const INITIAL_FOLDER_STORIES: AudioStoryItem[] = [
-  {
-    id: 'story-ch1',
-    name: 'Chuong_01_Khoi_Dau_Hanh_Trinh.mp3',
-    title: 'Chương 01: Khởi Đầu Hành Trình Tu Tiên',
-    chapter: 'Chương 1',
-    sizeBytes: 15420000,
-    formattedSize: '14.7 MB',
-    modifiedTime: new Date().toISOString(),
-    mimeType: 'audio/mpeg',
-    folderId: DEFAULT_TARGET_FOLDER,
-    folderName: 'Thư mục Truyện Audio (1ESn1qx...)',
-    companionTextFileName: 'Chuong_01_Khoi_Dau_Hanh_Trinh.txt',
-    audioUrl: 'https://actions.google.com/sounds/v1/ambiences/rain_heavy.ogg',
-    textContent: `Chương 1: Khởi Đầu Hành Trình Tu Tiên\n\nGió thu thổi qua những rặng trúc xanh rì rào, mang theo hơi thở mát lạnh của sương mai. Tại một ngôi làng nhỏ dưới chân núi Cửu Long, thiếu niên Hàn Lập đang ngồi trên tảng đá lớn trước hiên nhà, tay mân mê một viên ngọc màu xanh lục biếc.\n\nTừ nhỏ, hắn đã nghe người trong làng kể về những vị tiên nhân có thể đạp mây cưỡi gió, vung tay dời non lấp biển. Hắn vốn chỉ là một đứa trẻ chất phác, chưa từng dám mơ một ngày mình sẽ bước chân vào thế giới huyền diệu ấy.\n\n"Hàn Lập! Mau vào ăn cơm, hôm nay trưởng thôn triệu tập thanh thiếu niên trong thôn để tham gia khảo hạch của Huyền Thiên Tông đấy!" - Giọng nói ấm áp của người mẹ từ trong bếp vọng ra.\n\nHàn Lập giật mình, vội vàng cất kỹ viên đá vào trong túi áo ngực rồi đứng dậy chạy vào nhà. Trong lòng hắn rạo rực một ngọn lửa mơ ước vừa được nhen nhóm. Cuộc đời bình lặng của một chàng trai thôn quê từ khoảnh khắc này chính thức rẽ sang một trang sử hoàn toàn mới...`,
-    duration: 340,
-    savedProgress: 0,
-  },
-  {
-    id: 'story-ch2',
-    name: 'Chuong_02_Linh_Duoc_Ngan_Nam.mp3',
-    title: 'Chương 02: Linh Dược Ngàn Năm Và Cổ Kiếm',
-    chapter: 'Chương 2',
-    sizeBytes: 18920000,
-    formattedSize: '18.0 MB',
-    modifiedTime: new Date(Date.now() - 86400000).toISOString(),
-    mimeType: 'audio/mpeg',
-    folderId: DEFAULT_TARGET_FOLDER,
-    folderName: 'Thư mục Truyện Audio (1ESn1qx...)',
-    companionTextFileName: 'Chuong_02_Linh_Duoc_Ngan_Nam.txt',
-    audioUrl: 'https://actions.google.com/sounds/v1/water/creek_flowing.ogg',
-    textContent: `Chương 2: Linh Dược Ngàn Năm Và Cổ Kiếm\n\nKhu rừng rậm phía sau Huyền Thiên Tông bao phủ bởi một làn sương mù dày đặc. Từng nhánh cây cổ thụ vươn lên cao vút như những chiếc ô khổng lồ che khuất ánh mặt trời.\n\nHàn Lập thận trọng từng bước tiến sâu vào sơn cốc. Viên ngọc xanh trước ngực hắn đột nhiên phát ra ánh sáng nhè nhẹ, đập theo từng nhịp tim. Có điều gì đó kỳ lạ đang vẫy gọi hắn từ phía hang đá phía trước.\n\nKhi hắn bước vào cửa hang, một mùi hương thanh khiết lan tỏa ngào ngạt. Giữa lòng hồ nước ngầm tĩnh lặng, một đóa Cửu Diệp Huyết Liên đang tỏa ra ánh hào quang bảy màu, cạnh đó là thanh kiếm cổ rỉ sét cắm sâu vào thạch bích.\n\n"Đây chính là linh dược trong truyền thuyết sao?" - Hàn Lập ngỡ ngàng thì thào. Không ai ngờ được rằng, chính cơ duyên này đã giúp hắn mở ra cánh cửa tu chân đầu tiên trong đời...`,
-    duration: 410,
-    savedProgress: 45,
-  },
-  {
-    id: 'story-ch3',
-    name: 'Chuong_03_Dot_Pha_Canh_Gioi.mp3',
-    title: 'Chương 03: Đột Phá Cảnh Giới Luyện Khí',
-    chapter: 'Chương 3',
-    sizeBytes: 16800000,
-    formattedSize: '16.1 MB',
-    modifiedTime: new Date(Date.now() - 172800000).toISOString(),
-    mimeType: 'audio/mpeg',
-    folderId: DEFAULT_TARGET_FOLDER,
-    folderName: 'Thư mục Truyện Audio (1ESn1qx...)',
-    companionTextFileName: 'Chuong_03_Dot_Pha_Canh_Gioi.txt',
-    audioUrl: 'https://actions.google.com/sounds/v1/weather/thunder_crack.ogg',
-    textContent: `Chương 3: Đột Phá Cảnh Giới Luyện Khí\n\nSau khi hấp thu linh lực từ Cửu Diệp Huyết Liên, toàn thân Hàn Lập như bốc hỏa. Những luồng khí hỗn độn cuồn cuộn chảy qua kinh mạch, rèn giũa cốt cách của hắn.\n\nHắn cắn chặt răng, ngồi xếp bằng tĩnh tọa theo khẩu quyết mà sư phụ đã truyền thụ. Từng giọt mồ hôi đen kịt bài trừ tạp chất rơi lộp bộp xuống nền đá.\n\n"Ầm!"\n\nMột tiếng nổ trầm đục vang lên trong đan điền. Linh khí quanh sơn cốc như tìm thấy nguồn cội, điên cuồng ùa vào kinh mạch hắn. Cảm giác bế tắc hoàn toàn tan biến, thay vào đó là một nguồn sức mạnh dồi dào chưa từng thấy.\n\nLuyện Khí Tầng Ba! Hắn đã chính thức vượt qua ngưỡng cửa khó khăn nhất của phàm nhân để trở thành một tu tiên giả thực thụ!`,
-    duration: 380,
-    savedProgress: 0,
-  },
-];
 
 export default function App() {
   // Theme state persisted in localStorage
@@ -150,8 +100,8 @@ export default function App() {
   // Active View Tab: 'library' (Player + Reader) or 'embed' (Direct Google Drive folder)
   const [activeTab, setActiveTab] = useState<'library' | 'embed'>('library');
 
-  // Drive Data State - Preloaded directly with the requested folder
-  const [stories, setStories] = useState<AudioStoryItem[]>(INITIAL_FOLDER_STORIES);
+  // Drive Data State
+  const [stories, setStories] = useState<AudioStoryItem[]>([]);
   const [folders, setFolders] = useState<DriveFolder[]>([
     { id: DEFAULT_TARGET_FOLDER, name: 'Thư mục Truyện Audio (1ESn1qx...)' },
   ]);
@@ -257,8 +207,8 @@ export default function App() {
     setCustomOrderIds([]);
   };
 
-  // Playback & Reader (Default to the first chapter)
-  const [currentStory, setCurrentStory] = useState<AudioStoryItem | null>(INITIAL_FOLDER_STORIES[0]);
+  // Playback & Reader (Default to null until loaded)
+  const [currentStory, setCurrentStory] = useState<AudioStoryItem | null>(null);
   const [isReaderOpen, setIsReaderOpen] = useState(true);
   // Stories List Visibility (Can be toggled show/hide by user)
   const [isStoriesListOpen, setIsStoriesListOpen] = useState(true);
@@ -266,12 +216,55 @@ export default function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false);
 
+  // Subfolders / Story Collections list
+  const [subfolders, setSubfolders] = useState<DriveFolder[]>([]);
+
+  // Security Gate State (ID: BINHCK, Pass: Binh@1994)
+  const [isAppUnlocked, setIsAppUnlocked] = useState<boolean>(
+    () => localStorage.getItem('driveaudio_app_unlocked') === 'true'
+  );
+
   // Modals
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AudioStoryItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleLockApp = () => {
+    localStorage.removeItem('driveaudio_app_unlocked');
+    setIsAppUnlocked(false);
+  };
+
+  const handleRestoreHistory = (restoredData: {
+    currentFolderId?: string;
+    lastListenedStoryId?: string;
+    allSavedProgress?: Record<string, number>;
+    allFolderOrders?: Record<string, string[]>;
+  }) => {
+    if (restoredData.currentFolderId && restoredData.currentFolderId !== selectedFolderId) {
+      handleOpenFolderByUrl(restoredData.currentFolderId);
+    }
+
+    let updatedStories = [...stories];
+
+    if (restoredData.allSavedProgress) {
+      updatedStories = updatedStories.map((s) => ({
+        ...s,
+        savedProgress: restoredData.allSavedProgress?.[s.id] ?? s.savedProgress,
+      }));
+    }
+
+    setStories(updatedStories);
+
+    if (restoredData.lastListenedStoryId) {
+      const found = updatedStories.find((s) => s.id === restoredData.lastListenedStoryId);
+      if (found) {
+        setCurrentStory(found);
+      }
+    }
+  };
 
   // Total storage calculation
   const totalStorageBytes = useMemo(() => {
@@ -325,8 +318,7 @@ export default function App() {
           return updated || mappedStories[0];
         });
       } else {
-        // If folder currently has no files on Drive, keep sample stories so user can preview!
-        console.log('Folder is empty on Drive, maintaining preview stories.');
+        setStories([]);
       }
     } catch (err: unknown) {
       console.error('Error loading drive data:', err);
@@ -362,14 +354,26 @@ export default function App() {
       setDataError(null);
 
       // 1. Fetch live files directly from Google Drive folder via proxy
-      const { folderTitle, stories: fetchedStories } = await fetchPublicFolderAudio(cleanId);
+      const { folderTitle, stories: fetchedStories, subfolders: fetchedSubfolders } = await fetchPublicFolderAudio(cleanId);
 
       setSelectedFolderName(folderTitle);
+      setSubfolders(fetchedSubfolders || []);
+      setIsStoriesListOpen(true);
+      setSearchQuery('');
 
       const folderInfo = { id: cleanId, name: folderTitle };
       setFolders((prev) => {
-        if (prev.some((f) => f.id === folderInfo.id)) return prev;
-        return [folderInfo, ...prev];
+        const map = new Map<string, DriveFolder>();
+        map.set(folderInfo.id, folderInfo);
+        prev.forEach((f) => {
+          if (!map.has(f.id)) map.set(f.id, f);
+        });
+        if (fetchedSubfolders) {
+          fetchedSubfolders.forEach((sf) => {
+            if (!map.has(sf.id)) map.set(sf.id, sf);
+          });
+        }
+        return Array.from(map.values());
       });
 
       setRecentFolders((prev) => {
@@ -382,11 +386,28 @@ export default function App() {
       if (fetchedStories && fetchedStories.length > 0) {
         setStories(fetchedStories);
         setCurrentStory(fetchedStories[0]);
+      } else if (fetchedSubfolders && fetchedSubfolders.length > 0) {
+        const subfolderStories: AudioStoryItem[] = fetchedSubfolders.map((sf, index) => ({
+          id: sf.id,
+          name: sf.name,
+          title: sf.name,
+          chapter: `Bộ ${index + 1}`,
+          sizeBytes: 0,
+          formattedSize: 'Thư mục truyện',
+          modifiedTime: new Date().toISOString(),
+          mimeType: 'application/vnd.google-apps.folder',
+          webViewLink: `https://drive.google.com/drive/folders/${sf.id}`,
+          audioUrl: '',
+          folderId: cleanId,
+          folderName: folderTitle,
+          savedProgress: 0,
+          isFolder: true,
+        }));
+        setStories(subfolderStories);
+        setCurrentStory(null);
       } else {
-        const currentToken = token || (await getAccessToken());
-        if (currentToken) {
-          await loadDriveData(currentToken, cleanId);
-        }
+        setStories([]);
+        setCurrentStory(null);
       }
     } catch (err: unknown) {
       console.warn('Direct folder fetch error, falling back to authenticated Drive API:', err);
@@ -453,8 +474,8 @@ export default function App() {
     await logout();
     setUser(null);
     setToken(null);
-    setStories(INITIAL_FOLDER_STORIES);
-    setCurrentStory(INITIAL_FOLDER_STORIES[0]);
+    setStories([]);
+    setCurrentStory(null);
   };
 
   // Reload data
@@ -582,6 +603,11 @@ export default function App() {
   }, [currentStory, displayedStories]);
 
   const handlePlayStory = (story: AudioStoryItem) => {
+    if (story.isFolder || /shared folder|folder|thư mục/i.test(story.name)) {
+      handleOpenFolderByUrl(story.id);
+      return;
+    }
+
     if (currentStory?.id === story.id) {
       setIsPlaying((prev) => !prev);
     } else {
@@ -675,6 +701,10 @@ export default function App() {
     setStories(updated);
   };
 
+  if (!isAppUnlocked) {
+    return <LockScreen onUnlock={() => setIsAppUnlocked(true)} />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200">
       {/* Top Navigation */}
@@ -688,6 +718,8 @@ export default function App() {
         onOpenUpload={() => setIsUploadOpen(true)}
         onOpenFolderManager={() => setIsFolderModalOpen(true)}
         onOpenGuide={() => setIsGuideOpen(true)}
+        onOpenHistoryBackup={() => setIsHistoryModalOpen(true)}
+        onLockApp={handleLockApp}
         onRefresh={handleRefresh}
         isRefreshing={isRefreshing}
         totalStories={stories.length}
@@ -721,20 +753,33 @@ export default function App() {
             </div>
 
             {/* Folder Info & External Link */}
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">
-              <Folder className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-              <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[200px] sm:max-w-xs">
-                {selectedFolderName}
-              </span>
-              <a
-                href={`https://drive.google.com/drive/folders/${extractDriveFolderId(selectedFolderId)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1 font-medium ml-1"
-                title="Mở thư mục trên Google Drive"
-              >
-                <ExternalLink className="w-3 h-3" />
-              </a>
+            <div className="flex items-center gap-2 flex-wrap">
+              {selectedFolderId !== DEFAULT_TARGET_FOLDER && (
+                <button
+                  onClick={() => handleOpenFolderByUrl(DEFAULT_TARGET_FOLDER)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95"
+                  title="Quay lại thư mục gốc chứa tất cả các bộ truyện"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Quay lại tất cả bộ truyện</span>
+                </button>
+              )}
+
+              <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">
+                <Folder className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[200px] sm:max-w-xs">
+                  {selectedFolderName}
+                </span>
+                <a
+                  href={`https://drive.google.com/drive/folders/${extractDriveFolderId(selectedFolderId)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1 font-medium ml-1"
+                  title="Mở thư mục trên Google Drive"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
             </div>
 
               {/* Folder Selector and Sorting */}
@@ -825,6 +870,53 @@ export default function App() {
               </div>
             )}
 
+            {/* Subfolders / Story Collections Section */}
+            {subfolders && subfolders.length > 0 && (
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3 transition-colors">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-amber-500" />
+                    <span>Danh Sách Bộ Truyện / Thư Mục Con ({subfolders.length} bộ truyện)</span>
+                  </h3>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Bấm vào bộ truyện bên dưới để mở nghe</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {subfolders.map((sf) => (
+                    <button
+                      key={sf.id}
+                      onClick={() => {
+                        handleOpenFolderByUrl(sf.id);
+                        setTimeout(() => {
+                          window.scrollTo({ top: 350, behavior: 'smooth' });
+                        }, 200);
+                      }}
+                      className={`p-4 rounded-2xl border text-left flex items-center justify-between transition-all group cursor-pointer active:scale-[0.98] ${
+                        selectedFolderId === sf.id
+                          ? 'bg-indigo-50 dark:bg-indigo-950/70 border-indigo-500 dark:border-indigo-600 ring-2 ring-indigo-500/20 shadow-md'
+                          : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 shadow-2xs hover:shadow-md'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0 pr-2">
+                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-400 text-white flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform shadow-md shadow-amber-500/20">
+                          <Folder className="w-5 h-5 fill-white/20" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-slate-800 dark:text-slate-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                            {sf.name}
+                          </p>
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mt-0.5">
+                            ▶ Mở & Nghe bộ này
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:translate-x-1 transition-all flex-shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Collapsed Story List Banner when hidden */}
             {!isStoriesListOpen && (
               <div className="flex items-center justify-between p-3.5 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-xs transition-colors">
@@ -906,6 +998,16 @@ export default function App() {
                         Đang tìm kiếm các tệp âm thanh MP3 và tệp nội dung liên quan
                       </p>
                     </div>
+                  ) : displayedStories.length === 0 ? (
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 p-10 text-center transition-colors">
+                      <FolderOpen className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                        Không tìm thấy tệp audio hoặc thư mục nào trong liên kết này
+                      </h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                        Vui lòng kiểm tra lại liên kết thư mục Google Drive của bạn hoặc chọn thư mục khác.
+                      </p>
+                    </div>
                   ) : (
                     /* Story Items Grid */
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -918,6 +1020,7 @@ export default function App() {
                           isCurrent={currentStory?.id === story.id}
                           isPlaying={currentStory?.id === story.id && isPlaying}
                           onPlay={handlePlayStory}
+                          onOpenFolder={(folderId) => handleOpenFolderByUrl(folderId)}
                           onSelectForReader={(s) => {
                             setCurrentStory(s);
                             setIsReaderOpen(true);
@@ -1012,6 +1115,18 @@ export default function App() {
         onTryExampleLink={() => {
           handleOpenFolderByUrl(DEFAULT_TARGET_FOLDER);
         }}
+      />
+
+      {/* History Backup Modal */}
+      <HistoryBackupModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        folderId={selectedFolderId}
+        folderName={selectedFolderName}
+        stories={stories}
+        currentStory={currentStory}
+        customOrderIds={customOrderIds}
+        onRestoreHistory={handleRestoreHistory}
       />
 
       {/* Delete Confirmation Modal */}

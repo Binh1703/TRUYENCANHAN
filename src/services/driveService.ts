@@ -164,7 +164,7 @@ export const extractDriveFolderId = (input: string): string => {
  */
 export const fetchPublicFolderAudio = async (
   folderId: string
-): Promise<{ folderTitle: string; stories: AudioStoryItem[] }> => {
+): Promise<{ folderTitle: string; stories: AudioStoryItem[]; subfolders: DriveFolder[] }> => {
   const cleanId = extractDriveFolderId(folderId);
   const res = await fetch(`/api/drive/public-folder/${cleanId}`);
 
@@ -176,6 +176,11 @@ export const fetchPublicFolderAudio = async (
   const data = await res.json();
   const folderTitle = data.folderTitle || 'Thư mục Google Drive';
 
+  const subfolders: DriveFolder[] = (data.subfolders || []).map((sf: { id: string; name: string }) => ({
+    id: sf.id,
+    name: sf.name,
+  }));
+
   const stories: AudioStoryItem[] = (data.files || []).map((file: { id: string; name: string }) => {
     let title = file.name.replace(/\.[^/.]+$/, '');
     let chapter = '';
@@ -184,24 +189,27 @@ export const fetchPublicFolderAudio = async (
       chapter = `${chapterMatch[1]} ${chapterMatch[2]}`;
     }
 
+    const isFolderItem = /shared folder|folder|thư mục/i.test(file.name);
+
     return {
       id: file.id,
       name: file.name,
       title: title.charAt(0).toUpperCase() + title.slice(1),
       chapter,
       sizeBytes: 15000000,
-      formattedSize: 'Audio MP3',
+      formattedSize: isFolderItem ? 'Thư mục chứa tệp' : 'Audio MP3',
       modifiedTime: new Date().toISOString(),
-      mimeType: 'audio/mpeg',
+      mimeType: isFolderItem ? 'application/vnd.google-apps.folder' : 'audio/mpeg',
       webViewLink: `https://drive.google.com/file/d/${file.id}/view`,
       audioUrl: `/api/drive/stream/${file.id}`,
       folderId: cleanId,
       folderName: folderTitle,
       savedProgress: 0,
+      isFolder: isFolderItem,
     };
   });
 
-  return { folderTitle, stories };
+  return { folderTitle, stories, subfolders };
 };
 
 /**

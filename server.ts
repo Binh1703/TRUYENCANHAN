@@ -40,7 +40,7 @@ async function startServer() {
 
       const map = new Map<string, string>();
 
-      // Pattern: data-id="([a-zA-Z0-9_-]+)"...data-tooltip="([^"]+)"
+      // Pattern 1: data-id="([a-zA-Z0-9_-]+)"...data-tooltip="([^"]+)"
       const regex1 = /data-id="([a-zA-Z0-9_-]{20,})"[^>]*?data-tooltip="([^"]+)"/g;
       let match;
       while ((match = regex1.exec(html)) !== null) {
@@ -49,7 +49,7 @@ async function startServer() {
         if (!map.has(id)) map.set(id, name);
       }
 
-      // Pattern: aria-label="([^"]+)"...data-id="([a-zA-Z0-9_-]+)"
+      // Pattern 2: aria-label="([^"]+)"...data-id="([a-zA-Z0-9_-]+)"
       const regex2 = /aria-label="([^"]+)"[^>]*?data-id="([a-zA-Z0-9_-]{20,})"/g;
       while ((match = regex2.exec(html)) !== null) {
         const name = match[1].replace(/\s+Audio.*$/i, '').replace(/\s+Shared.*$/i, '').trim();
@@ -57,7 +57,7 @@ async function startServer() {
         if (!map.has(id)) map.set(id, name);
       }
 
-      // Pattern: data-id="([a-zA-Z0-9_-]+)" ... aria-label="([^"]+)"
+      // Pattern 3: data-id="([a-zA-Z0-9_-]+)" ... aria-label="([^"]+)"
       const regex3 = /data-id="([a-zA-Z0-9_-]{20,})"[\s\S]{1,300}?aria-label="([^"]+)"/g;
       while ((match = regex3.exec(html)) !== null) {
         const id = match[1];
@@ -65,9 +65,42 @@ async function startServer() {
         if (!map.has(id)) map.set(id, name);
       }
 
+      // Pattern 4: JS data arrays containing ["FILE_ID", "NAME.mp3", ...]
+      const regex4 = /\["([a-zA-Z0-9_-]{20,40})",\s*"([^"]+\.(?:mp3|m4a|wav|aac|ogg|flac|txt|md))"/gi;
+      while ((match = regex4.exec(html)) !== null) {
+        const id = match[1];
+        const name = match[2].trim();
+        if (!map.has(id)) map.set(id, name);
+      }
+
       const files: Array<{ id: string; name: string }> = [];
-      for (const [id, name] of map.entries()) {
-        files.push({ id, name });
+      const subfoldersMap = new Map<string, string>();
+
+      // Extract subfolders pattern: /folders/([a-zA-Z0-9_-]{20,})
+      const subfolderRegex = /\/folders\/([a-zA-Z0-9_-]{20,})/g;
+      let sfMatch;
+      while ((sfMatch = subfolderRegex.exec(html)) !== null) {
+        const sfId = sfMatch[1];
+        if (sfId !== folderId && !subfoldersMap.has(sfId)) {
+          const sfName = map.get(sfId) || `Thư mục truyện ${subfoldersMap.size + 1}`;
+          subfoldersMap.set(sfId, sfName);
+        }
+      }
+
+      for (const [id, rawName] of map.entries()) {
+        const isFolderItem =
+          /shared folder|folder|thư mục/i.test(rawName) ||
+          subfoldersMap.has(id);
+
+        if (isFolderItem && id !== folderId) {
+          const cleanName = rawName
+            .replace(/\s*shared folder.*$/i, '')
+            .replace(/\s*folder.*$/i, '')
+            .trim();
+          subfoldersMap.set(id, cleanName || rawName);
+        } else {
+          files.push({ id, name: rawName });
+        }
       }
 
       // Natural sort by chapter/part number
@@ -77,11 +110,21 @@ async function startServer() {
         return parseInt(numA.toString(), 10) - parseInt(numB.toString(), 10);
       });
 
+      const subfolders: Array<{ id: string; name: string }> = [];
+      for (const [id, name] of subfoldersMap.entries()) {
+        const cleanName = name
+          .replace(/\s*shared folder.*$/i, '')
+          .replace(/\s*folder.*$/i, '')
+          .trim();
+        subfolders.push({ id, name: cleanName || name });
+      }
+
       return res.json({
         folderId,
         folderTitle,
         total: files.length,
         files,
+        subfolders,
       });
     } catch (err: unknown) {
       console.error('Error fetching public folder:', err);
