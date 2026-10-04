@@ -1,0 +1,6 @@
+{
+  "name": "DriveAudio - Kho Truyện Audio Google Drive",
+  "description": "Ứng dụng nghe truyện audio MP3 và đọc nội dung trực tiếp kết nối với cơ sở dữ liệu Google Drive của bạn.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
