@@ -891,10 +891,10 @@ export default function App() {
                           window.scrollTo({ top: 350, behavior: 'smooth' });
                         }, 200);
                       }}
-                      className={`p-4 rounded-2xl border text-left flex items-center justify-between transition-all group cursor-pointer active:scale-[0.98] ${
+                      className={`p-4 rounded-2xl border text-left flex items-center justify-between transition-all duration-200 group cursor-pointer active:scale-[0.98] hover:scale-[1.02] hover:shadow-lg ${
                         selectedFolderId === sf.id
-                          ? 'bg-indigo-50 dark:bg-indigo-950/70 border-indigo-500 dark:border-indigo-600 ring-2 ring-indigo-500/20 shadow-md'
-                          : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 shadow-2xs hover:shadow-md'
+                          ? 'bg-indigo-50 dark:bg-indigo-950/70 border-indigo-500 dark:border-indigo-600 ring-2 ring-indigo-500/20 shadow-md scale-[1.01]'
+                          : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 shadow-2xs hover:shadow-xl'
                       }`}
                     >
                       <div className="flex items-center gap-3.5 min-w-0 pr-2">
