@@ -863,39 +863,55 @@ export default function App() {
             {/* Error banner if any */}
             {dataError && (
               <div
-                className={`p-4 rounded-2xl text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs ${
+                className={`p-4 rounded-2xl text-sm flex flex-col gap-3 shadow-xs transition-all ${
                   isScopeError
                     ? 'bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
                     : 'bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-200'
                 }`}
               >
-                <div className="flex items-center gap-2.5">
-                  {isScopeError ? (
-                    <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-600 dark:text-rose-400" />
-                  )}
-                  <span className="font-medium">{dataError}</span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {isScopeError ? (
+                      <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                    ) : (
+                      <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-600 dark:text-rose-400" />
+                    )}
+                    <span className="font-semibold break-words">{dataError}</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {isScopeError ? (
+                      <button
+                        onClick={handleLogin}
+                        disabled={isLoadingAuth}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+                      >
+                        <Key className="w-3.5 h-3.5" />
+                        <span>{isLoadingAuth ? 'Đang mở cấp quyền...' : 'Cấp quyền Google Drive ngay'}</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleRefresh}
+                        className="font-bold underline hover:text-rose-900 dark:hover:text-rose-300 text-xs px-3 py-1.5 bg-rose-100 dark:bg-rose-900/60 rounded-xl transition-colors cursor-pointer"
+                      >
+                        Thử lại
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {isScopeError ? (
-                    <button
-                      onClick={handleLogin}
-                      disabled={isLoadingAuth}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50"
-                    >
-                      <Key className="w-3.5 h-3.5" />
-                      <span>{isLoadingAuth ? 'Đang mở cấp quyền...' : 'Cấp quyền Google Drive ngay'}</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleRefresh}
-                      className="font-semibold underline hover:text-rose-900 dark:hover:text-rose-300 text-xs px-2 py-1"
-                    >
-                      Thử lại
-                    </button>
-                  )}
-                </div>
+
+                {/* If the error relates to Vercel VITE_GOOGLE_API_KEY */}
+                {(dataError.includes('VITE_GOOGLE_API_KEY') || dataError.includes('API Key')) && (
+                  <div className="mt-1 pt-3 border-t border-rose-200 dark:border-rose-800/80 text-xs space-y-1.5 text-rose-900 dark:text-rose-300">
+                    <p className="font-bold flex items-center gap-1.5">
+                      💡 Hướng dẫn sửa nhanh trên Vercel:
+                    </p>
+                    <ol className="list-decimal list-inside space-y-1 pl-1 opacity-90">
+                      <li>Mở dự án của bạn trên <strong>Vercel</strong> → <strong>Settings</strong> → <strong>Environment Variables</strong>.</li>
+                      <li>Thêm Key: <code className="bg-rose-100 dark:bg-rose-900/80 px-1.5 py-0.5 rounded font-mono font-bold">VITE_GOOGLE_API_KEY</code> với giá trị là Google Cloud API Key của bạn.</li>
+                      <li>Vào tab <strong>Deployments</strong> trên Vercel và bấm <strong>Redeploy</strong> để áp dụng.</li>
+                    </ol>
+                  </div>
+                )}
               </div>
             )}
 

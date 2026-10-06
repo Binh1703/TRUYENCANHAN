@@ -160,6 +160,85 @@ export const extractDriveFolderId = (input: string): string => {
 };
 
 /**
+  Fetch public folder items via public CORS proxy as a fallback when VITE_GOOGLE_API_KEY is not set
+ */
+const fetchPublicFolderViaCorsProxy = async (cleanId: string) => {
+  const targetUrl = `https://drive.google.com/embeddedfolderview?id=${cleanId}#list`;
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+    `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+  ];
+
+  for (const proxyUrl of proxies) {
+    try {
+      const res = await fetch(proxyUrl);
+      if (!res.ok) continue;
+      const html = await res.text();
+      if (!html || (!html.includes('drive-viewer') && !html.includes('entry-title') && !html.includes('/file/d/'))) {
+        continue;
+      }
+
+      // Extract title
+      const titleMatch = html.match(/<title>(.*?)<\/title>/i);
+      const folderTitle = titleMatch ? titleMatch[1].replace('- Google Drive', '').trim() : 'Thư mục Google Drive';
+
+      // Extract file IDs and names from HTML links
+      const fileMatches = Array.from(html.matchAll(/\/file\/d\/([a-zA-Z0-9_-]+)\/view[^\">]*["\'][^>]*>([^<]+)/gi));
+      const filesMap = new Map<string, string>();
+
+      for (const m of fileMatches) {
+        if (m[1] && m[2]) {
+          filesMap.set(m[1], m[2].trim());
+        }
+      }
+
+      // Extract folder links
+      const folderMatches = Array.from(html.matchAll(/\/drive\/folders\/([a-zA-Z0-9_-]+)[^\">]*["\'][^>]*>([^<]+)/gi));
+      const subfolders: DriveFolder[] = [];
+      for (const fm of folderMatches) {
+        if (fm[1] && fm[1] !== cleanId && fm[2]) {
+          subfolders.push({ id: fm[1], name: fm[2].trim() });
+        }
+      }
+
+      if (filesMap.size > 0 || subfolders.length > 0) {
+        const stories: AudioStoryItem[] = Array.from(filesMap.entries()).map(([id, name]) => {
+          let title = name.replace(/\.[^/.]+$/, '');
+          let chapter = '';
+          const chapterMatch = title.match(/(chương|chuong|tập|tap|hồi|hoi|phần|phan|ep|episode|part)\s*(\d+[-_0-9]*)/i);
+          if (chapterMatch) {
+            chapter = `${chapterMatch[1]} ${chapterMatch[2]}`;
+          }
+
+          return {
+            id,
+            name,
+            title: title.charAt(0).toUpperCase() + title.slice(1),
+            chapter,
+            sizeBytes: 15000000,
+            formattedSize: 'Audio MP3',
+            modifiedTime: new Date().toISOString(),
+            mimeType: 'audio/mpeg',
+            webViewLink: `https://drive.google.com/file/d/${id}/view`,
+            audioUrl: `https://docs.google.com/uc?export=download&id=${id}`,
+            folderId: cleanId,
+            folderName: folderTitle,
+            savedProgress: 0,
+            isFolder: false,
+          };
+        });
+
+        return { folderTitle, stories, subfolders };
+      }
+    } catch {
+      // Ignore proxy errors and try next
+    }
+  }
+
+  return null;
+};
+
+/**
  * Fetch all audio files directly from any Google Drive folder (public or shared)
  */
 export const fetchPublicFolderAudio = async (
@@ -177,7 +256,7 @@ export const fetchPublicFolderAudio = async (
 
     if (!folderRes.ok) {
       throw new Error(
-        "API Key bị từ chối hoặc thư mục chưa được chia sẻ 'Bất kỳ ai có đường liên kết'. Kiểm tra lại API Key và quyền chia sẻ của thư mục."
+        "API Key bị từ chối hoặc thư mục chưa được chia sẻ 'Bất kỳ ai có đường liên kết'. Kiểm tra lại VITE_GOOGLE_API_KEY và quyền chia sẻ của thư mục."
       );
     }
 
@@ -205,7 +284,7 @@ export const fetchPublicFolderAudio = async (
       const filesRes = await fetch(pageUrl);
       if (!filesRes.ok) {
         throw new Error(
-          "API Key bị từ chối hoặc thư mục chưa được chia sẻ 'Bất kỳ ai có đường liên kết'. Kiểm tra lại API Key và quyền chia sẻ của thư mục."
+          "API Key bị từ chối hoặc thư mục chưa được chia sẻ 'Bất kỳ ai có đường liên kết'. Kiểm tra lại VITE_GOOGLE_API_KEY và quyền chia sẻ của thư mục."
         );
       }
 
@@ -286,51 +365,72 @@ export const fetchPublicFolderAudio = async (
     return { folderTitle, stories, subfolders };
   }
 
-  // 2. Fallback to Express backend proxy when running dev server locally without client key
-  const res = await fetch(`/api/drive/public-folder/${cleanId}`);
+  // 2. If VITE_GOOGLE_API_KEY is not set, attempt Express backend (dev) or CORS proxy (static Vercel)
+  try {
+    const res = await fetch(`/api/drive/public-folder/${cleanId}`);
+    const contentType = res.headers.get('content-type') || '';
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Không thể đọc thư mục Google Drive (${res.status})`);
-  }
+    if (contentType.includes('text/html') || !res.ok) {
+      // Attempt CORS proxy public extraction
+      const proxyResult = await fetchPublicFolderViaCorsProxy(cleanId);
+      if (proxyResult) {
+        return proxyResult;
+      }
 
-  const data = await res.json();
-  const folderTitle = data.folderTitle || 'Thư mục Google Drive';
-
-  const subfolders: DriveFolder[] = (data.subfolders || []).map((sf: { id: string; name: string }) => ({
-    id: sf.id,
-    name: sf.name,
-  }));
-
-  const stories: AudioStoryItem[] = (data.files || []).map((file: { id: string; name: string }) => {
-    let title = file.name.replace(/\.[^/.]+$/, '');
-    let chapter = '';
-    const chapterMatch = title.match(/(chương|chuong|tập|tap|hồi|hoi|phần|phan|ep|episode|part)\s*(\d+[-_0-9]*)/i);
-    if (chapterMatch) {
-      chapter = `${chapterMatch[1]} ${chapterMatch[2]}`;
+      throw new Error(
+        "Chưa cấu hình VITE_GOOGLE_API_KEY trên Vercel. Bạn cần vào Vercel Settings -> Environment Variables để thêm VITE_GOOGLE_API_KEY."
+      );
     }
 
-    const isFolderItem = /shared folder|folder|thư mục/i.test(file.name);
+    const data = await res.json();
+    const folderTitle = data.folderTitle || 'Thư mục Google Drive';
 
-    return {
-      id: file.id,
-      name: file.name,
-      title: title.charAt(0).toUpperCase() + title.slice(1),
-      chapter,
-      sizeBytes: 15000000,
-      formattedSize: isFolderItem ? 'Thư mục chứa tệp' : 'Audio MP3',
-      modifiedTime: new Date().toISOString(),
-      mimeType: isFolderItem ? 'application/vnd.google-apps.folder' : 'audio/mpeg',
-      webViewLink: `https://drive.google.com/file/d/${file.id}/view`,
-      audioUrl: `/api/drive/stream/${file.id}`,
-      folderId: cleanId,
-      folderName: folderTitle,
-      savedProgress: 0,
-      isFolder: isFolderItem,
-    };
-  });
+    const subfolders: DriveFolder[] = (data.subfolders || []).map((sf: { id: string; name: string }) => ({
+      id: sf.id,
+      name: sf.name,
+    }));
 
-  return { folderTitle, stories, subfolders };
+    const stories: AudioStoryItem[] = (data.files || []).map((file: { id: string; name: string }) => {
+      let title = file.name.replace(/\.[^/.]+$/, '');
+      let chapter = '';
+      const chapterMatch = title.match(/(chương|chuong|tập|tap|hồi|hoi|phần|phan|ep|episode|part)\s*(\d+[-_0-9]*)/i);
+      if (chapterMatch) {
+        chapter = `${chapterMatch[1]} ${chapterMatch[2]}`;
+      }
+
+      return {
+        id: file.id,
+        name: file.name,
+        title: title.charAt(0).toUpperCase() + title.slice(1),
+        chapter,
+        sizeBytes: 15000000,
+        formattedSize: 'Audio MP3',
+        modifiedTime: new Date().toISOString(),
+        mimeType: 'audio/mpeg',
+        webViewLink: `https://drive.google.com/file/d/${file.id}/view`,
+        audioUrl: `/api/drive/stream/${file.id}`,
+        folderId: cleanId,
+        folderName: folderTitle,
+        savedProgress: 0,
+        isFolder: false,
+      };
+    });
+
+    return { folderTitle, stories, subfolders };
+  } catch (err) {
+    if (err instanceof Error && err.message.includes('VITE_GOOGLE_API_KEY')) {
+      throw err;
+    }
+
+    const proxyResult = await fetchPublicFolderViaCorsProxy(cleanId);
+    if (proxyResult) {
+      return proxyResult;
+    }
+
+    throw new Error(
+      "Chưa cấu hình VITE_GOOGLE_API_KEY trên Vercel. Vui lòng thêm VITE_GOOGLE_API_KEY vào Vercel Settings -> Environment Variables."
+    );
+  }
 };
 
 /**
